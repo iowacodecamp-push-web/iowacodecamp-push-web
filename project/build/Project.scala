@@ -7,6 +7,10 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
   lazy val api      = project("api", "API", new ApiProject(_))
 
   class WebProject(info: ProjectInfo) extends DefaultWebProject(info) {
+    //JRebel & html/css changes without restarts
+    override def jettyWebappPath = webappPath
+    override def scanDirectories = Nil
+    
     val liftVersion = "2.3"
     override def libraryDependencies = Set(
       "net.liftweb" %% "lift-webkit" % liftVersion % "compile",
@@ -18,6 +22,7 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
       "com.h2database" % "h2" % "1.2.138"
     ) ++ super.libraryDependencies
   }
+  
   class ProtocolProject(info: ProjectInfo) extends DefaultProject(info)
   class CentralProject(info: ProjectInfo) extends DefaultProject(info)
   class ApiProject(info: ProjectInfo) extends DefaultProject(info)
