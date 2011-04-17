@@ -10,6 +10,7 @@ import sitemap._
 import Loc._
 
 import code.rest._
+import code.model._
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -17,15 +18,13 @@ import code.rest._
  */
 class Boot {
   def boot {
-    println("Fuck this")
-    
     // where to search snippet
     LiftRules.addToPackages("code")
 
     // Build SiteMap
     val entries = List(
       Menu.i("Home") / "index", // the simple way to declare a menu
-
+      User.signOutMenu,
       // more complex because this menu allows anything in the
       // /static path to be visible
       Menu(Loc("Static", Link(List("static"), true, "/static/index"), 
@@ -50,5 +49,7 @@ class Boot {
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     LiftRules.dispatch.prepend(RestApi)
+
+    LiftRules.loggedInTest = Full(() => User.signedIn_?)
   }
 }

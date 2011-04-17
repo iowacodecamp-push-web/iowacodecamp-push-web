@@ -33,5 +33,5 @@ function onError(e) {
 }
 
 function sendLocation() {
-    $.post('/location', { latitude: latitude, longitude: longitude });
+    $.post('/location', {latitude: latitude, longitude: longitude});
 }

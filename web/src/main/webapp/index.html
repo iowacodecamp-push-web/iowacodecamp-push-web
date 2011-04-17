@@ -3,21 +3,24 @@
     <title>Push</title>
     <script src="/classpath/jquery.js" type="text/javascript"></script>
     <script src="/classpath/json.js" type="text/javascript"></script>
-    <script src="/scripts/geo.js" type="text/javascript"></script>
+    <lift:TestCond.loggedIn>
+      <script src="/scripts/geo.js" type="text/javascript"></script>
+    </lift:TestCond.loggedIn>
   </head>
 
   <body>
     <h1>Push</h1>
 
-    <div id="signedOut">
-      <form>
+    <div id="signedOut" class="lift:TestCond.loggedOut">
+      <form class="lift:SignIn?form=post">
 	<label>Username</label>
-	<input type="text"/>
+	<input type="text" name="username"/>
 	<input type="submit" value="Sign in"/>
       </form>
     </div>
 
-    <div id="signedIn">
+    <div id="signedIn" class="lift:TestCond.loggedIn">
+      <a href="/sign-out">Sign out</a>
       Users near you:
       <ul>
 	<li>Other user</li>
