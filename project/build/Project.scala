@@ -1,10 +1,10 @@
 import sbt._
 
 class Project(info: ProjectInfo) extends ParentProject(info) {
-  lazy val web      = project("web", "Web", new WebProject(_)) 
   lazy val protocol = project("protocol", "Protocol", new ProtocolProject(_)) 
-  lazy val central  = project("central", "Central", new CentralProject(_)) 
-  lazy val api      = project("api", "API", new ApiProject(_))
+  lazy val web      = project("web", "Web", new WebProject(_), protocol) 
+  lazy val central  = project("central", "Central", new CentralProject(_), protocol) 
+  lazy val api      = project("api", "API", new ApiProject(_), protocol)
 
   class WebProject(info: ProjectInfo) extends DefaultWebProject(info) {
     //JRebel & html/css changes without restarts
