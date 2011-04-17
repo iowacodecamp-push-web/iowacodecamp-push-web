@@ -12,44 +12,28 @@ import Loc._
 import code.rest._
 import code.model._
 
-/**
- * A class that's instantiated early and run.  It allows the application
- * to modify lift's environment
- */
 class Boot {
+  val mobileDocType = """<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">"""
   def boot {
-    // where to search snippet
     LiftRules.addToPackages("code")
-
-    // Build SiteMap
     val entries = List(
-      Menu.i("Home") / "index", // the simple way to declare a menu
-      User.signOutMenu,
-      // more complex because this menu allows anything in the
-      // /static path to be visible
-      Menu(Loc("Static", Link(List("static"), true, "/static/index"), 
-	       "Static Content")))
+      Menu.i("Home") / "index",
+      Menu.i("Map") / "map",
+      User.signOutMenu)
+    LiftRules.setSiteMap(SiteMap(entries: _*))
 
-    // set the sitemap.  Note if you don't want access control for
-    // each page, just comment this line out.
-    LiftRules.setSiteMap(SiteMap(entries:_*))
+    LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
+    LiftRules.ajaxEnd = Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
 
-    //Show the spinny image when an Ajax call starts
-    LiftRules.ajaxStart =
-      Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
-    
-    // Make the spinny image go away when it ends
-    LiftRules.ajaxEnd =
-      Full(() => LiftRules.jsArtifacts.hide("ajax-loader").cmd)
-
-    // Use jQuery 1.4
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
-
-    // Force the request to be UTF-8
+    //LiftRules.htmlProperties.default.set((r: Req) => new Html5Properties(r.userAgent))
+    LiftRules.htmlProperties.default.set((r: Req) => r match {
+      case Req(List("index"),_,_) => new Html5Properties(r.userAgent).setDocType(() => Full(mobileDocType)) //TODO this is not working...
+      case _ => new Html5Properties(r.userAgent)
+    })
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     LiftRules.dispatch.prepend(RestApi)
-
     LiftRules.loggedInTest = Full(() => User.signedIn_?)
   }
 }

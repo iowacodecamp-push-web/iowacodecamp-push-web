@@ -20,7 +20,7 @@ object RestApi extends RestHelper {
         lng <- S param "longitude"
       } {
         u.location = Full(Location(lat.toDouble, lng.toDouble))
-	Central ! u
+	CentralReq ! u
       }
       OkResponse()
   }
