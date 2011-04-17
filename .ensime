@@ -1,0 +1,16 @@
+;; This config was generated using ensime-config-gen. Feel free to customize its contents manually.
+
+(
+
+:project-name "iowacodecamp-push-web"
+:project-package ""
+
+:use-sbt t
+:sbt-subprojects (
+  (:name "protocol" :deps ())
+  (:name "web" :deps ("protocol"))
+  (:name "central" :deps ("protocol"))
+  (:name "api" :deps ("protocol"))
+)
+
+)
