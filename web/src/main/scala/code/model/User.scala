@@ -13,7 +13,7 @@ object User {
   object signedIn extends SessionVar[Box[User]](Empty)
   def signedIn_? = signedIn.is.isDefined
   def signOut = {
-    for (u <- signedIn) CentralReq ! UserGone(u.username)
+    for (u <- signedIn) CentralPush ! UserGone(u.username)
     for (r <- S.request) r.request.session.terminate
     S redirectTo "/"
   }
