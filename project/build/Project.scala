@@ -24,7 +24,7 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
   }
   
   class ProtocolProject(info: ProjectInfo) extends DefaultProject(info)
-  class CentralProject(info: ProjectInfo) extends DefaultProject(info)
+  class CentralProject(info: ProjectInfo) extends DefaultProject(info) with AkkaProject
   class ApiProject(info: ProjectInfo) extends DefaultProject(info)
 }
 
