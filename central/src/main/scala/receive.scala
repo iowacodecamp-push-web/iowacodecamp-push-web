@@ -3,10 +3,11 @@ package code.central
 import code.protocol._
 import org.zeromq.ZMQ
 import akka.actor.{Actor, ActorRef}
+import akka.routing.Listeners
 
 case object ReceiveMessage
 
-class ZMQSocketMessageReceiver(toForward: ActorRef, port: Int) extends Actor with ZMQContext {
+class ZMQSocketMessageReceiver(port: Int) extends Actor with ZMQContext with Listeners {
   import ProtocolDeserialization._
   import ZMQMultipart._
   
@@ -16,15 +17,15 @@ class ZMQSocketMessageReceiver(toForward: ActorRef, port: Int) extends Actor wit
     pullSocket
   }
 
-  def receive = {
+  def receive = listenerManagement orElse {
     case ReceiveMessage =>
       val message = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(pullSocket)
-      toForward ! message
+      gossip(message)
       self ! ReceiveMessage
   }
 }
 
-class CentralReceiver(centralPublisher: ActorRef) extends Actor {
+class CentralBroadcastReceiver(centralPublisher: ActorRef) extends Actor {
   def receive = {
     case msg @ UserAt(user, location) =>
       log.info("User " + user + " is at: " + location)
@@ -32,6 +33,7 @@ class CentralReceiver(centralPublisher: ActorRef) extends Actor {
     case msg @ UserGone(who) =>
       log.info(who + " has left")
       centralPublisher forward msg
+    case msg => log.info("ignoring message " + msg)
   }
 }
 
