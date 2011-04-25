@@ -2,14 +2,18 @@ import sbt._
 
 class Project(info: ProjectInfo) extends ParentProject(info) {
   lazy val protocol = project("protocol", "Protocol", new ProtocolProject(_)) 
-  lazy val web      = project("web", "Web", new WebProject(_), protocol) 
-  lazy val central  = project("central", "Central", new CentralProject(_), protocol) 
-  lazy val api      = project("api", "API", new ApiProject(_), protocol)
+  lazy val web      = project("web", "Web", new WebProject(_)) 
+  lazy val central  = project("central", "Central", new CentralProject(_)) 
+  lazy val api      = project("api", "API", new ApiProject(_))
+  
+  class ProtocolProject(info: ProjectInfo) extends DefaultProject(info)
 
   class WebProject(info: ProjectInfo) extends DefaultWebProject(info) {
     //JRebel & html/css changes without restarts
     override def jettyWebappPath = webappPath
     override def scanDirectories = Nil
+
+    val protocolDep = protocol
     
     val liftVersion = "2.3"
     override def libraryDependencies = Set(
@@ -23,8 +27,12 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
     ) ++ super.libraryDependencies
   }
   
-  class ProtocolProject(info: ProjectInfo) extends DefaultProject(info)
-  class CentralProject(info: ProjectInfo) extends DefaultProject(info) with AkkaProject
-  class ApiProject(info: ProjectInfo) extends DefaultProject(info)
+  class CentralProject(info: ProjectInfo) extends DefaultProject(info) with AkkaProject {
+    val protocolDep = protocol    
+  }
+  
+  class ApiProject(info: ProjectInfo) extends DefaultProject(info) {
+    val protocolDep = protocol
+  }
 }
 
