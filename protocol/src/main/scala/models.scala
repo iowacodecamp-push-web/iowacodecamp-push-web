@@ -14,4 +14,4 @@ case class NearbyUsers(users: List[UserAt])
 
 // for 3-part message to send out notifications to users when nearby
 case class UserNearby(target: User, whoNearby: UserAt)
-case class UserNotLongerNearby(target: User, whoLeft: UserGone)
+case class UserNoLongerNearby(target: User, whoLeft: UserGone)

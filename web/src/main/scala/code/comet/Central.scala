@@ -15,6 +15,11 @@ trait Sender {
   def ![A <: CaseClass: Manifest](msg: A) {
     writeTwoPartMessage(serializeToMessage(msg), socket)
   }
+
+  def ![A <: CaseClass : Manifest](t: (String, A)) {
+    socket.send(t._1.getBytes, ZMQ.SNDMORE)
+    this ! t._2
+  }
 }
 
 trait Receiver {
@@ -22,24 +27,65 @@ trait Receiver {
   import ZMQMultipart._
   def socket: ZMQ.Socket
   def blockingReceive() = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
-  //val msg = deserializeMessage(blockingReadTwoPartMessage(socket))
+  //def blockingReceive() = deserializeMessage(blockingReadTwoPartMessage(socket))
 }
 
-/*class Subscriber(val endpoint: String, val next: LiftActor) extends Receiver {
-  
-}*/
+class Subscriber(endpoint: String, next: LiftActor, filter: String = "") extends LiftActor with Receiver with Logger {
+  var context: ZMQ.Context = ZMQ.context(1)
+  var socket: ZMQ.Socket = {
+    val s = context.socket(ZMQ.SUB)
+    s.subscribe(filter.getBytes)
+    s.connect(endpoint)
+    debug("Connected to SUB socket at " + endpoint)
+    s
+  }
 
-class Pusher(val endpoint: String) extends Sender {
+  override def messageHandler = {
+    case Receive => if (socket != null) {
+      val msg = blockingReceive() //TODO we can't receive a Stop message while this is blocking...
+      debug("Received " + msg)
+      next ! msg
+      this ! Receive
+    } else warn("SUB socket already closed")
+
+    case Stop =>
+      socket.close()
+      context.term()
+      socket = null
+      context = null
+      debug("Closed SUB socket at " + endpoint)
+  }
+}
+
+class Pusher(val endpoint: String) extends Sender with Logger {
   lazy val context: ZMQ.Context = ZMQ.context(1)
   lazy val socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.PUSH)
     s.connect(endpoint)
+    debug("Connected to PUSH socket at " + endpoint)
     s
   }
 
   def close() {
     socket.close()
     context.term()
+    debug("Closed PUSH socket at " + endpoint)
+  }
+}
+
+class Publisher(val endpoint: String) extends Sender with Logger {
+  lazy val context: ZMQ.Context = ZMQ.context(1)
+  lazy val socket: ZMQ.Socket = {
+    val s = context.socket(ZMQ.PUB)
+    s.bind(endpoint)
+    debug("Bound to PUB socket at " + endpoint)
+    s
+  }
+
+  def close() {
+    socket.close()
+    context.term()
+    debug("Closed PUB socket at " + endpoint)
   }
 }
 
@@ -52,7 +98,7 @@ object CentralPush extends LiftActor with Logger {
 
   override def messageHandler = {
     case u: LiftUser =>
-      //TODO implicit User => UserAt
+      //TODO implicit LiftUser => UserAt
       for (l <- u.location) {
         val msg = UserAt(User(u.username), l)
         println("Sending " + msg + " to Central...")
