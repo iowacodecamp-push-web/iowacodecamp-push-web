@@ -8,26 +8,47 @@ import code.model._
 import code.protocol._
 import org.zeromq.ZMQ
 
-import com.banno.salat.avro._
-import global._
-import java.io._
-import org.apache.avro.io._
+trait Sender {
+  import ProtocolSerialization._
+  import ZMQMultipart._
+  def socket: ZMQ.Socket
+  def ![A <: CaseClass: Manifest](msg: A) {
+    writeTwoPartMessage(serializeToMessage(msg), socket)
+  }
+}
+
+trait Receiver {
+  import ProtocolDeserialization._
+  import ZMQMultipart._
+  def socket: ZMQ.Socket
+  def blockingReceive() = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
+  //val msg = deserializeMessage(blockingReadTwoPartMessage(socket))
+}
+
+/*class Subscriber(val endpoint: String, val next: LiftActor) extends Receiver {
+  
+}*/
+
+class Pusher(val endpoint: String) extends Sender {
+  lazy val context: ZMQ.Context = ZMQ.context(1)
+  lazy val socket: ZMQ.Socket = {
+    val s = context.socket(ZMQ.PUSH)
+    s.connect(endpoint)
+    s
+  }
+
+  def close() {
+    socket.close()
+    context.term()
+  }
+}
 
 sealed trait Message
 case object Receive extends Message
 case object Stop extends Message
 
 object CentralPush extends LiftActor with Logger {
-  import ProtocolSerialization._
-  import ZMQMultipart._
-  lazy val context: ZMQ.Context = ZMQ.context(1)
-  lazy val socket: ZMQ.Socket = {
-    val s = context.socket(ZMQ.PUSH)
-    val endpoint = Props.get("centralPushEndpoint", "tcp://localhost:5558")
-    s.connect(endpoint)
-    debug("Connected to PUSH socket at " + endpoint)
-    s
-  }
+  lazy val pusher = new Pusher(Props.get("centralPushEndpoint", "tcp://localhost:5558"))
 
   override def messageHandler = {
     case u: User =>
@@ -35,25 +56,24 @@ object CentralPush extends LiftActor with Logger {
       for (l <- u.location) {
         val msg = UserAt(u.username, l)
         println("Sending " + msg + " to Central...")
-        //CentralSub ! msg
-        writeTwoPartMessage(serializeToMessage(msg), socket)
+        pusher ! msg
       }
 
     case g: UserGone =>
       println("Sending " + g + " to Central...")
-      //CentralSub ! g
-      writeTwoPartMessage(serializeToMessage(g), socket)
+      pusher ! g
 
     case Stop =>
-      socket.close()
-      context.term()
-      debug("Closed PUSH socket")
+      pusher.close()
   }
 }
 
-object CentralSub extends LiftActor with ListenerManager with Logger {
-  import ProtocolDeserialization._
-  import ZMQMultipart._
+//create Subscriber with an endpoint and a LiftActor, it receives msg from 0MQ and !s it to LiftActor
+//or should Subscriber just provide a receive(): Any method, and CentralSub calls it?
+
+object CentralSub extends LiftActor with ListenerManager with Receiver with Logger {
+  //lazy val subscriber = new Subscriber(Props.get("centralSubEndpoint", "tcp://localhost:5559"))
+
   var context: ZMQ.Context = ZMQ.context(1)
   var socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.SUB)
@@ -67,9 +87,7 @@ object CentralSub extends LiftActor with ListenerManager with Logger {
   def createUpdate = "Registered" //do we need this?
   override def lowPriority = {
     case Receive => if (socket != null) {
-      //TODO we can't receive a Stop message while this is blocking...
-      val msg = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
-      //val msg = deserializeMessage(blockingReadTwoPartMessage(socket))
+      val msg = blockingReceive() //TODO we can't receive a Stop message while this is blocking...
       debug("Received " + msg)
       updateListeners(msg)
       this ! Receive
