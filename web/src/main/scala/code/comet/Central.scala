@@ -18,8 +18,10 @@ case object Receive extends Message
 case object Stop extends Message
 
 object CentralPush extends LiftActor with Logger {
-  private var context: ZMQ.Context = ZMQ.context(1)
-  private var socket: ZMQ.Socket = {
+  import ProtocolSerialization._
+  import ZMQMultipart._
+  lazy val context: ZMQ.Context = ZMQ.context(1)
+  lazy val socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.PUSH)
     val endpoint = Props.get("centralPushEndpoint", "tcp://localhost:5555")
     s.connect(endpoint)
@@ -34,23 +36,13 @@ object CentralPush extends LiftActor with Logger {
         val msg = UserAt(u.username, l)
         println("Sending " + msg + " to Central...")
         //CentralSub ! msg
-
-        //TODO type class?
-        val baos = new ByteArrayOutputStream
-        val encoder = EncoderFactory.get().binaryEncoder(baos, null)
-        grater[UserAt].serialize(msg, encoder)
-        socket.send(baos.toByteArray, 0)
+        writeTwoPartMessage(serializeToMessage(msg), socket)
       }
 
     case g: UserGone =>
       println("Sending " + g + " to Central...")
       //CentralSub ! g
-
-      //TODO type class?
-      val baos = new ByteArrayOutputStream
-      val encoder = EncoderFactory.get().binaryEncoder(baos, null)
-      grater[UserGone].serialize(g, encoder)
-      socket.send(baos.toByteArray, 0)
+      writeTwoPartMessage(serializeToMessage(g), socket)
 
     case Stop =>
       socket.close()
@@ -60,8 +52,10 @@ object CentralPush extends LiftActor with Logger {
 }
 
 object CentralSub extends LiftActor with ListenerManager with Logger {
-  private var context: ZMQ.Context = ZMQ.context(1)
-  private var socket: ZMQ.Socket = {
+  import ProtocolDeserialization._
+  import ZMQMultipart._
+  var context: ZMQ.Context = ZMQ.context(1)
+  var socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.SUB)
     val endpoint = Props.get("centralSubEndpoint", "tcp://localhost:5556")
     s.subscribe("".getBytes)
@@ -72,15 +66,11 @@ object CentralSub extends LiftActor with ListenerManager with Logger {
 
   def createUpdate = "Registered" //do we need this?
   override def lowPriority = {
-    //case ua: UserAt => updateListeners(ua)
-    //case ug: UserGone => updateListeners(ug)
     case Receive => if (socket != null) {
-      val bytes = socket.recv(ZMQ.NOBLOCK)
-      if (bytes != null) {
-        //TODO deserialize bytes into either UserAt or UserGone, then call updateListeners
-        //how do we do that? try grater[UserAt], catch exception and then try grater[UserGone]?
-      } else
-        Thread.sleep(1)
+      //TODO we can't receive a Stop message while this is blocking...
+      val msg = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
+      //val msg = deserializeMessage(blockingReadTwoPartMessage(socket))
+      updateListeners(msg)
       this ! Receive
     } else warn("SUB socket already closed")
 
