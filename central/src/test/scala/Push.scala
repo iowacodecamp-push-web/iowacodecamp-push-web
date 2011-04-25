@@ -11,7 +11,7 @@ object Push extends ZMQContext {
     val pushSocket = context.socket(ZMQ.PUSH)
     pushSocket.connect("tcp://localhost:5558")
 
-    writeTwoPartMessage(serializeToMessage(UserAt("Luke", Location(2.0, 3.0))), pushSocket)
-    writeTwoPartMessage(serializeToMessage(UserGone("Luke")), pushSocket)
+    writeTwoPartMessage(serializeToMessage(UserAt(User("Luke"), Location(2.0, 3.0))), pushSocket)
+    writeTwoPartMessage(serializeToMessage(UserGone(User("Luke"))), pushSocket)
   }
 }

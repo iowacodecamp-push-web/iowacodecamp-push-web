@@ -15,7 +15,7 @@ object RestApi extends RestHelper {
     // - lat or lng param not parseable as Double
     case Post(List("location"), _) =>
       for {
-        u <- User.signedIn
+        u <- LiftUser.signedIn
         lat <- S param "latitude"
         lng <- S param "longitude"
       } {

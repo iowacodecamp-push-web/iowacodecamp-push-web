@@ -17,7 +17,6 @@ object ProtocolSerialization {
     grater[A].serialize(message, binaryEncoder)
     baos.toByteArray()
   }
-  
 }
 
 object ProtocolDeserialization {

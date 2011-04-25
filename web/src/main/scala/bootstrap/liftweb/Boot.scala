@@ -20,7 +20,7 @@ class Boot {
     val entries = List(
       Menu.i("Home") / "index",
       Menu.i("Map") / "map",
-      User.signOutMenu)
+      LiftUser.signOutMenu)
     LiftRules.setSiteMap(SiteMap(entries: _*))
 
     LiftRules.ajaxStart = Full(() => LiftRules.jsArtifacts.show("ajax-loader").cmd)
@@ -35,7 +35,7 @@ class Boot {
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     LiftRules.dispatch.prepend(RestApi)
-    LiftRules.loggedInTest = Full(() => User.signedIn_?)
+    LiftRules.loggedInTest = Full(() => LiftUser.signedIn_?)
 
     CentralSub ! Receive
     LiftRules.unloadHooks.append({ () => CentralPush ! Stop; CentralSub ! Stop })

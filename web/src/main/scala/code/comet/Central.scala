@@ -30,10 +30,10 @@ object CentralPush extends LiftActor with Logger {
   }
 
   override def messageHandler = {
-    case u: User =>
+    case u: LiftUser =>
       //TODO implicit User => UserAt
       for (l <- u.location) {
-        val msg = UserAt(u.username, l)
+        val msg = UserAt(User(u.username), l)
         println("Sending " + msg + " to Central...")
         //CentralSub ! msg
         writeTwoPartMessage(serializeToMessage(msg), socket)

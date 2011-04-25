@@ -7,13 +7,13 @@ import net.liftweb.sitemap.Loc._
 import code.protocol._
 import code.comet._
 
-case class User(val username: String, var location: Box[Location] = Empty)
+case class LiftUser(val username: String, var location: Box[Location] = Empty)
 
-object User {
-  object signedIn extends SessionVar[Box[User]](Empty)
+object LiftUser {
+  object signedIn extends SessionVar[Box[LiftUser]](Empty)
   def signedIn_? = signedIn.is.isDefined
   def signOut = {
-    for (u <- signedIn) CentralPush ! UserGone(u.username)
+    for (u <- signedIn) CentralPush ! UserGone(User(u.username))
     for (r <- S.request) r.request.session.terminate
     S redirectTo "/"
   }
