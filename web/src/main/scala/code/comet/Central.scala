@@ -23,7 +23,7 @@ object CentralPush extends LiftActor with Logger {
   lazy val context: ZMQ.Context = ZMQ.context(1)
   lazy val socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.PUSH)
-    val endpoint = Props.get("centralPushEndpoint", "tcp://localhost:5555")
+    val endpoint = Props.get("centralPushEndpoint", "tcp://localhost:5558")
     s.connect(endpoint)
     debug("Connected to PUSH socket at " + endpoint)
     s
@@ -57,7 +57,7 @@ object CentralSub extends LiftActor with ListenerManager with Logger {
   var context: ZMQ.Context = ZMQ.context(1)
   var socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.SUB)
-    val endpoint = Props.get("centralSubEndpoint", "tcp://localhost:5556")
+    val endpoint = Props.get("centralSubEndpoint", "tcp://localhost:5559")
     s.subscribe("".getBytes)
     s.connect(endpoint)
     debug("Connected to SUB socket at " + endpoint)
@@ -70,6 +70,7 @@ object CentralSub extends LiftActor with ListenerManager with Logger {
       //TODO we can't receive a Stop message while this is blocking...
       val msg = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
       //val msg = deserializeMessage(blockingReadTwoPartMessage(socket))
+      debug("Received " + msg)
       updateListeners(msg)
       this ! Receive
     } else warn("SUB socket already closed")
