@@ -1,6 +1,10 @@
 package code.protocol
 
-case class Location(latitude: Double, longitude: Double)
+case class Location(latitude: Double, longitude: Double) {
+  def within5km(other: Location): Boolean = {
+    LocationMath.distance(this, other) <= 5
+  }
+}
 
 case class User(username: String)
 
