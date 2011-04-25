@@ -16,7 +16,8 @@ function userAt(username, lat, lng) {
 	users[username] = new google.maps.Marker({
 	    position: new google.maps.LatLng(lat, lng),
 	    map: map,
-	    title: username
+	    title: username,
+	    animation: google.maps.Animation.DROP
 	});
     }
 }
