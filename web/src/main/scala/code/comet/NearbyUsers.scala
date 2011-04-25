@@ -7,10 +7,11 @@ import net.liftweb.util.Props
 import code.model._
 import code.model.LiftUser.signedIn
 import code.protocol._
+import code.zeromq._
 import scala.xml.NodeSeq
 
 class NearbyUsers extends CometActor with Logger {
-  lazy val subscriber = new Subscriber(Props.get("centralNearbySubEndpoint", "tcp://localhost:5555"), this, signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
+  lazy val subscriber = new FilteredSubscriber(Props.get("centralNearbySubEndpoint", "tcp://localhost:5555"), this, signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
 
   override def localSetup() {
     subscriber ! Receive

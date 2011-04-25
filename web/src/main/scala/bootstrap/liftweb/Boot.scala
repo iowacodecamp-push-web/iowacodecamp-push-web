@@ -12,6 +12,7 @@ import Loc._
 import code.rest._
 import code.model._
 import code.comet._
+import code.zeromq._
 
 class Boot {
   val mobileDocType = """<!DOCTYPE html PUBLIC "-//WAPFORUM//DTD XHTML Mobile 1.0//EN" "http://www.wapforum.org/DTD/xhtml-mobile10.dtd">"""
@@ -37,7 +38,7 @@ class Boot {
     LiftRules.dispatch.prepend(RestApi)
     LiftRules.loggedInTest = Full(() => LiftUser.signedIn_?)
 
-    CentralSub ! Receive
+    //CentralSub ! Receive
     LiftRules.unloadHooks.append({ () => CentralPush ! Stop; CentralSub ! Stop })
   }
 }

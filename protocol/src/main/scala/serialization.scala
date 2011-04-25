@@ -11,6 +11,11 @@ object ProtocolSerialization {
     (message.getClass.getName, asByteArray(message))
   }
 
+  def serializeToMessage[A <: CaseClass : Manifest](key: String, message: A): FilterableMessage = {
+    val (className, bytes) = serializeToMessage(message)
+    (key, className, bytes)
+  }
+
   private def asByteArray[A <: CaseClass : Manifest](message: A): Array[Byte] = {
     val baos = new ByteArrayOutputStream
     val binaryEncoder = EncoderFactory.get.binaryEncoder(baos, null)
@@ -26,6 +31,11 @@ object ProtocolDeserialization {
     val binaryDecoder = DecoderFactory.get.binaryDecoder(bytes, null)
     
     grater.asObject(binaryDecoder).asInstanceOf[CaseClass]
+  }
+
+  def deserializeMessage(message: FilterableMessage): CaseClass = {
+    val (_, className, bytes) = message
+    deserializeMessage((className, bytes))
   }
 }
 

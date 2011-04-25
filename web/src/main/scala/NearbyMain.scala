@@ -2,6 +2,7 @@ package code.app
 
 import code.protocol._
 import code.comet._
+import code.zeromq._
 
 object NearbyMain {
   def main(args: Array[String]) {
