@@ -5,7 +5,7 @@ import net.liftweb.http._
 import net.liftweb.http.rest._
 import code.model._
 import code.comet._
-import protocol._
+import code.protocol._
 
 object RestApi extends RestHelper {
   serve {

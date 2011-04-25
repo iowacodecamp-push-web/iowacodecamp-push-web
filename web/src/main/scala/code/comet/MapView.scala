@@ -4,7 +4,7 @@ import net.liftweb.http._
 import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
-import protocol._
+import code.protocol._
 import scala.xml.NodeSeq
 
 class MapView extends CometActor with CometListener {

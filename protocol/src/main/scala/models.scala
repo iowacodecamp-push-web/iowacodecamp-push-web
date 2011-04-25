@@ -1,4 +1,4 @@
-package protocol
+package code.protocol
 
 //compiler error: expected class or object definition
 //type Position = Pair[Double, Double]

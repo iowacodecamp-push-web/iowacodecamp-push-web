@@ -4,7 +4,7 @@ import net.liftweb.http.{ SessionVar, S }
 import net.liftweb.common._
 import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
-import protocol._
+import code.protocol._
 import code.comet._
 
 case class User(val username: String, var location: Box[Location] = Empty)

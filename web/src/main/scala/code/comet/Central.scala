@@ -5,7 +5,7 @@ import net.liftweb.http._
 import net.liftweb.util.Props
 import net.liftweb.common.Logger
 import code.model._
-import protocol._
+import code.protocol._
 import org.zeromq.ZMQ
 
 import com.banno.salat.avro._
