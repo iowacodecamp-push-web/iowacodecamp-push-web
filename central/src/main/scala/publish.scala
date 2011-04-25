@@ -15,8 +15,8 @@ class ZMQSocketMessagePublisher(port: Int) extends Actor with ZMQContext {
   }
   
   def receive = {
-    case msg @ UserAt(username, location) =>
-      log.info("User " + username + " is at: " + location)
+    case msg @ UserAt(user, location) =>
+      log.info("User " + user + " is at: " + location)
       writeTwoPartMessage(serializeToMessage(msg), publishSocket)
     case msg @ UserGone(who) =>
       log.info(who + " has left")

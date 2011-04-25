@@ -26,8 +26,8 @@ class ZMQSocketMessageReceiver(toForward: ActorRef, port: Int) extends Actor wit
 
 class CentralReceiver(centralPublisher: ActorRef) extends Actor {
   def receive = {
-    case msg @ UserAt(username, location) =>
-      log.info("User " + username + " is at: " + location)
+    case msg @ UserAt(user, location) =>
+      log.info("User " + user + " is at: " + location)
       centralPublisher forward msg
     case msg @ UserGone(who) =>
       log.info(who + " has left")

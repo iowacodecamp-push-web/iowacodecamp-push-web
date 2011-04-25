@@ -51,10 +51,10 @@ object CentralPush extends LiftActor with Logger {
   lazy val pusher = new Pusher(Props.get("centralPushEndpoint", "tcp://localhost:5558"))
 
   override def messageHandler = {
-    case u: User =>
+    case u: LiftUser =>
       //TODO implicit User => UserAt
       for (l <- u.location) {
-        val msg = UserAt(u.username, l)
+        val msg = UserAt(User(u.username), l)
         println("Sending " + msg + " to Central...")
         pusher ! msg
       }

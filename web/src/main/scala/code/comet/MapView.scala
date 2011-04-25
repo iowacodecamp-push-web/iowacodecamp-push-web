@@ -11,9 +11,9 @@ class MapView extends CometActor with CometListener {
   def registerWith = CentralSub
 
   override def lowPriority = {
-    case UserAt(username, Location(lat, lng)) =>
+    case UserAt(User(username), Location(lat, lng)) =>
       partialUpdate(Call("userAt", Str(username), Num(lat), Num(lng)))
-    case UserGone(username) =>
+    case UserGone(User(username)) =>
       partialUpdate(Call("userGone", Str(username)))
   }
 
