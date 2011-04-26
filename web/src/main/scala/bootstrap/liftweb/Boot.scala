@@ -38,7 +38,7 @@ class Boot {
     LiftRules.dispatch.prepend(RestApi)
     LiftRules.loggedInTest = Full(() => LiftUser.signedIn_?)
 
-    //CentralSub ! Receive
+    CentralSub ! Receive
     LiftRules.unloadHooks.append({ () => CentralPush ! Stop; CentralSub ! Stop })
   }
 }
