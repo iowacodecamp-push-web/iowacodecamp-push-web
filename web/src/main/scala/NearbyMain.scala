@@ -6,7 +6,7 @@ import code.zeromq._
 
 object NearbyMain {
   def main(args: Array[String]) {
-    val publisher = new Publisher("tcp://*:5555")
+    val publisher = new Publisher("tcp://*:5560")
     val max = 5
     for (i <- 1 to max) {
       Thread.sleep(3000)

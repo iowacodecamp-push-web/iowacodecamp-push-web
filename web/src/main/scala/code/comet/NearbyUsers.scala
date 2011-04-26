@@ -10,7 +10,7 @@ import code.zeromq._
 
 class NearbyUsers extends CometActor with Logger {
   val subscriber = new FilteredSubscriber(
-    Props.get("centralNearbySubEndpoint", "tcp://localhost:5555"),
+    Props.get("centralNearbySubEndpoint", "tcp://localhost:5560"),
     this,
     signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
 
