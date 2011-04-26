@@ -10,7 +10,7 @@ import code.zeromq._
 import org.zeromq.ZMQ
 
 object CentralPush extends LiftActor with Logger {
-  lazy val pusher = new Pusher(Props.get("centralPushEndpoint", "tcp://localhost:5558"))
+  val pusher = new Pusher(Props.get("centralPushEndpoint", "tcp://localhost:5558"))
 
   override def messageHandler = {
     case u: LiftUser =>
@@ -31,9 +31,9 @@ object CentralPush extends LiftActor with Logger {
 }
 
 object CentralSub extends LiftActor with ListenerManager {
-  lazy val subscriber = new Subscriber(Props.get("centralSubEndpoint", "tcp://localhost:5559"), this)
+  val subscriber = new Subscriber(Props.get("centralSubEndpoint", "tcp://localhost:5559"), this)
+  def createUpdate = "Ignore"
 
-  def createUpdate = "Registered" //do we need this?
   override def lowPriority = {
     case Receive => subscriber ! Receive
     case Stop => subscriber ! Stop
