@@ -9,6 +9,7 @@ import code.js.WebJsCmds._
 import code.zeromq._
 
 class NearbyUsers extends CometActor with Logger {
+  var users: Set[User] = Set()
   val subscriber = new FilteredSubscriber(
     Props.get("centralNearbySubEndpoint", "tcp://localhost:5560"),
     this,
@@ -35,13 +36,17 @@ class NearbyUsers extends CometActor with Logger {
   override def lowPriority = {
     //on NearbyUsersReply => render all users in list
 
-    case UserNearby(_, UserAt(other, _)) =>
+    case UserNearby(_, UserAt(other, _)) => if (!(users contains other)) {
+      users += other
       debug(other + " is now nearby")
       partialUpdate(PrependAndFade(containerId, render(other), id(other)))
+    }
 
-    case UserNoLongerNearby(_, UserGone(other)) =>
+    case UserNoLongerNearby(_, UserGone(other)) => if (users contains other) {
+      users -= other
       debug(other + " is no longer nearby")
       partialUpdate(FadeAndRemove(id(other)))
+    }
   }
 
   def id(u: User) = u.username
