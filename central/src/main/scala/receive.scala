@@ -37,3 +37,26 @@ class CentralBroadcastReceiver(centralPublisher: ActorRef) extends Actor {
   }
 }
 
+class NearbyUsersBroadcast(centralNearbyPublisher: ActorRef) extends Actor {
+  var userLocations: Map[User, Location] = Map()
+
+  def receive = {
+    case msg @ UserAt(user, location) =>
+      forThoseWithin5kmOf(user, location) { otherUser =>
+        centralNearbyPublisher ! UserNearby(otherUser, msg)
+      }
+      userLocations += (user -> location)
+    case msg @ UserGone(who) =>
+      val location = userLocations(who)
+      forThoseWithin5kmOf(who, location) { otherUser =>
+        centralNearbyPublisher ! UserNoLongerNearby(otherUser, msg)
+      }
+      userLocations -= who
+  }
+
+  def forThoseWithin5kmOf(user: User, from: Location)(f: (User) => Unit) {
+    for {
+      (u, l) <- userLocations if l.within5km(from) && u != user
+    } f(u)
+  }
+}
