@@ -17,7 +17,7 @@ trait Sender {
     writeTwoPartMessage(serializeToMessage(msg), socket)
   }
 
-  def ![A <: CaseClass : Manifest](t: (String, A)) {
+  def ![A <: CaseClass: Manifest](t: (String, A)) {
     writeFilterableMessage(serializeToMessage(t._1, t._2), socket)
   }
 }
@@ -26,18 +26,30 @@ trait Receiver {
   import ProtocolDeserialization._
   import ZMQMultipart._
   def socket: ZMQ.Socket
-  def blockingReceive() = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
+  def blockingReceive() =
+    ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(socket)
   //def blockingReceive() = deserializeMessage(blockingReadTwoPartMessage(socket))
-  def blockingReceiveFilterable() = ((blockingReadFilterableMessage _) andThen (deserializeMessage _))(socket)
+  def blockingReceiveFilterable() =
+    ((blockingReadFilterableMessage _) andThen (deserializeMessage _))(socket)
+
+  def nonBlockingReceive() =
+    nonBlockingReadTwoPartMessage(socket) map { deserializeMessage _ }
+  def nonBlockingReceiveFilterable() =
+    nonBlockingReadFilterableMessage(socket) map { deserializeMessage _ }
 }
 
-class FilteredSubscriber(endpoint: String, next: LiftActor, filter: String = "") extends AbstractSubscriber(endpoint, next, filter) {
-  def receive() = blockingReceiveFilterable() //TODO we can't receive a Stop message while this is blocking...
+class FilteredSubscriber(endpoint: String, next: LiftActor, filter: String = "")
+  extends AbstractSubscriber(endpoint, next, filter) {
+  def receive() = nonBlockingReceiveFilterable()
 }
-class Subscriber(endpoint: String, next: LiftActor) extends AbstractSubscriber(endpoint, next) {
-  def receive() = blockingReceive() //TODO we can't receive a Stop message while this is blocking...
+
+class Subscriber(endpoint: String, next: LiftActor)
+  extends AbstractSubscriber(endpoint, next) {
+  def receive() = nonBlockingReceive()
 }
-abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: String = "") extends LiftActor with Receiver with Logger {
+
+abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: String = "")
+  extends LiftActor with Receiver with Logger {
   var context: ZMQ.Context = ZMQ.context(1)
   var socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.SUB)
@@ -47,14 +59,17 @@ abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: Str
     s
   }
 
-  def receive(): Any
+  /** Returns Some(msg) if a message was received or None if no message was available. */
+  def receive(): Option[Any]
 
   override def messageHandler = {
     case Receive => if (socket != null) {
-      debug("Receiving...")
-      val msg = receive()
-      debug("Received " + msg)
-      next ! msg
+      receive() match {
+        case Some(msg) =>
+          debug("Received " + msg)
+          next ! msg
+        case None => Thread.sleep(1) //prevents runaway thread
+      }
       this ! Receive
     } else warn("SUB socket already closed")
 

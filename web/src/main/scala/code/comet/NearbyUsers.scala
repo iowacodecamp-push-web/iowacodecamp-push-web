@@ -20,7 +20,7 @@ class NearbyUsers extends CometActor with Logger {
   }
 
   override def localShutdown() {
-    subscriber ! Stop //TODO if subscriber is blocking on receive, it won't get this!
+    subscriber ! Stop
   }
 
   def containerId = "nearbyUsers"
