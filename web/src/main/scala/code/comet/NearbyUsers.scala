@@ -9,9 +9,10 @@ import code.model.LiftUser.signedIn
 import code.protocol._
 import code.zeromq._
 import scala.xml.NodeSeq
+import net.liftweb.util.Helpers._
 
 class NearbyUsers extends CometActor with Logger {
-  lazy val subscriber = new FilteredSubscriber(Props.get("centralNearbySubEndpoint", "tcp://localhost:5555"), this, signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
+  val subscriber = new FilteredSubscriber(Props.get("centralNearbySubEndpoint", "tcp://localhost:5555"), this, signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
 
   override def localSetup() {
     subscriber ! Receive
@@ -36,11 +37,12 @@ class NearbyUsers extends CometActor with Logger {
 
     case UserNearby(_, UserAt(other, _)) =>
       debug(other + " is now nearby")
-      partialUpdate(PrependHtml(containerId, render(other)) & FadeIn(id(other)))
+      partialUpdate(PrependHtml(containerId, render(other)) &
+        FadeIn(id(other), 0 seconds, 1 second))
 
     case UserNoLongerNearby(_, UserGone(other)) =>
       debug(other + " is no longer nearby")
-      partialUpdate(FadeOut(id(other)) & Remove(id(other)))
+      partialUpdate(FadeOut(id(other), 0 seconds, 1 second) & Remove(id(other)))
   }
 
   def id(u: User) = u.username

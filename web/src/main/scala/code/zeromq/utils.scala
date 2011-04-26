@@ -35,7 +35,7 @@ class FilteredSubscriber(endpoint: String, next: LiftActor, filter: String = "")
   def receive() = blockingReceiveFilterable() //TODO we can't receive a Stop message while this is blocking...
 }
 class Subscriber(endpoint: String, next: LiftActor) extends AbstractSubscriber(endpoint, next) {
-  def receive() = blockingReceive()
+  def receive() = blockingReceive() //TODO we can't receive a Stop message while this is blocking...
 }
 abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: String = "") extends LiftActor with Receiver with Logger {
   var context: ZMQ.Context = ZMQ.context(1)
@@ -51,6 +51,7 @@ abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: Str
 
   override def messageHandler = {
     case Receive => if (socket != null) {
+      debug("Receiving...")
       val msg = receive()
       debug("Received " + msg)
       next ! msg
@@ -67,8 +68,8 @@ abstract class AbstractSubscriber(endpoint: String, next: LiftActor, filter: Str
 }
 
 class Pusher(val endpoint: String) extends Sender with Logger {
-  lazy val context: ZMQ.Context = ZMQ.context(1)
-  lazy val socket: ZMQ.Socket = {
+  val context: ZMQ.Context = ZMQ.context(1)
+  val socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.PUSH)
     s.connect(endpoint)
     debug("Connected to PUSH socket at " + endpoint)
@@ -83,8 +84,8 @@ class Pusher(val endpoint: String) extends Sender with Logger {
 }
 
 class Publisher(val endpoint: String) extends Sender with Logger {
-  lazy val context: ZMQ.Context = ZMQ.context(1)
-  lazy val socket: ZMQ.Socket = {
+  val context: ZMQ.Context = ZMQ.context(1)
+  val socket: ZMQ.Socket = {
     val s = context.socket(ZMQ.PUB)
     s.bind(endpoint)
     debug("Bound to PUB socket at " + endpoint)
