@@ -11,8 +11,10 @@ function initialize() {
 
 function userAt(username, lat, lng) {
     if (users.hasOwnProperty(username)) {
+	console.log(username + ' set position');
 	users[username].setPosition(new google.maps.LatLng(lat, lng));
     } else {
+	console.log(username + ' create marker');
 	users[username] = new google.maps.Marker({
 	    position: new google.maps.LatLng(lat, lng),
 	    map: map,
@@ -23,6 +25,8 @@ function userAt(username, lat, lng) {
 }
 
 function userGone(username) {
+    console.log(username + ' gone');
     users[username].setMap(null);
     users[username] = null;
+    delete users[username];
 }

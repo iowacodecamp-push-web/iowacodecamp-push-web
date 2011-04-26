@@ -24,7 +24,7 @@ class NearbyUsers extends CometActor with Logger {
   }
 
   def containerId = "nearbyUsers"
-  def render = "*" #> "loading..."
+  def render = "*" #> ""
   //TODO get initial list of nearby users & display them
   //we should not block page load waiting for Central to send reply
   //we should:
