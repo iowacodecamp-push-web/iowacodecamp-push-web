@@ -37,7 +37,7 @@
 - Desktop or mobile web app (ie browser)
 - Any app that can use streaming web API
 - events from user to system: ajax
-- events from system to user: comet or websockets or long http response
+- events from system to user: comet or websockets or long http response or pubsubhubbub
 - events between system components: 0mq
 - events within a system component: actors/akka/lift
 
