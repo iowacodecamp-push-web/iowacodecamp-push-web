@@ -3,24 +3,20 @@ package code.rest
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest._
-import code.model._
-import code.comet._
-import code.protocol._
+import code.model.LiftUser
+import code.comet.CentralPush
+import code.protocol.{ UserAt, User, Location }
 
 object RestApi extends RestHelper {
   serve {
-    //TODO 4xx response on:
-    // - no signed-in User?
-    // - no lat or lng params
-    // - lat or lng param not parseable as Double
     case Post(List("location"), _) =>
       for {
-        u <- LiftUser.signedIn
-        lat <- S param "latitude"
-        lng <- S param "longitude"
+        user <- LiftUser.signedIn
+        lat <- S param "latitude" map { _.toDouble }
+        lng <- S param "longitude" map { _.toDouble }
       } {
-        u.location = Full(Location(lat.toDouble, lng.toDouble))
-	CentralPush ! u
+        user.location = Full(Location(lat, lng))
+        CentralPush ! UserAt(User(user.username), Location(lat, lng))
       }
       OkResponse()
   }

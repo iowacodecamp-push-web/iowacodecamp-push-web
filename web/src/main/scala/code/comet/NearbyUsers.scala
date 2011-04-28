@@ -6,42 +6,30 @@ import net.liftweb.util.Props
 import code.model.LiftUser.signedIn
 import code.protocol._
 import code.js.WebJsCmds._
-import code.zeromq._
+import org.salvero.lift.{ FilterableSubscribe, Start, Stop }
+import scala.xml.NodeSeq
 
 class NearbyUsers extends CometActor with Logger {
   var users: Set[User] = Set()
-  val subscriber = new FilteredSubscriber(
-    Props.get("centralNearbySubEndpoint", "tcp://localhost:5560"),
-    this,
-    signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user")))
+  def key = signedIn map { _.username } openOr (throw new IllegalStateException("No signed-in user"))
+  val subscribe = new FilterableSubscribe(Props.get("centralNearbySubEndpoint", "tcp://localhost:5560"), this, Set(key))
 
   override def localSetup() {
-    subscriber ! Receive
+    subscribe ! Start
   }
 
   override def localShutdown() {
-    subscriber ! Stop
+    subscribe ! Stop
   }
 
   def containerId = "nearbyUsers"
-  def render = "*" #> ""
-  //TODO get initial list of nearby users & display them
-  //we should not block page load waiting for Central to send reply
-  //we should:
-  // - display "loading" message/image
-  // - send req asynchronously
-  // - when we receive reply, do a re-render or partialUpdate to show users
-
-  //a Subscriber will send messages here
+  def render = NodeSeq.Empty
   override def lowPriority = {
-    //on NearbyUsersReply => render all users in list
-
     case UserNearby(_, UserAt(other, _)) => if (!(users contains other)) {
       users += other
       debug(other + " is now nearby")
       partialUpdate(PrependAndFade(containerId, render(other), id(other)))
     }
-
     case UserNoLongerNearby(_, UserGone(other)) => if (users contains other) {
       users -= other
       debug(other + " is no longer nearby")

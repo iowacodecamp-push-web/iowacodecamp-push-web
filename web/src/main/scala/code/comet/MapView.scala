@@ -1,10 +1,9 @@
 package code.comet
 
-import net.liftweb.http._
-import net.liftweb.http.js._
+import net.liftweb.http.{CometActor, CometListener}
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
-import code.protocol._
+import code.protocol.{UserAt, User, Location, UserGone}
 import scala.xml.NodeSeq
 
 class MapView extends CometActor with CometListener {
@@ -17,5 +16,6 @@ class MapView extends CometActor with CometListener {
       partialUpdate(Call("userGone", Str(username)))
   }
 
-  override def render = NodeSeq.Empty
+  //this snippet just sets up the comet connection, nothing to render
+  def render = NodeSeq.Empty
 }
