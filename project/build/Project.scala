@@ -31,8 +31,13 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
     val protocolDep = protocol    
   }
   
-  class ApiProject(info: ProjectInfo) extends DefaultProject(info) {
+  class ApiProject(info: ProjectInfo) extends DefaultProject(info) with AkkaProject {
     val protocolDep = protocol
+    
+    lazy val unfilteredNetty = "net.databinder" %% "unfiltered-netty" % "0.3.2"
+    lazy val sjson = "net.debasishg" %% "sjson" % "0.10"
+
+    lazy val jboss = "jboss repo" at  "http://repository.jboss.org/nexus/content/groups/public-jboss/"
   }
 }
 

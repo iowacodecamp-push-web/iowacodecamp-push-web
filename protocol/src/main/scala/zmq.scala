@@ -60,3 +60,7 @@ object ZMQMultipart {
     writeTwoPartMessage((message._2, message._3), socket)
   }
 }
+
+trait ZMQContext {
+  lazy val context = ZMQ.context(1)
+}
