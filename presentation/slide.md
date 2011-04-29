@@ -69,16 +69,16 @@
 !SLIDE smbullets
 # Example app: nearby users
 
-!SLIDE
+!SLIDE center
 ![blah](ICCArchitecture1a.png)
 
-!SLIDE
+!SLIDE center
 ![blah](ICCArchitecture2a.png)
 
-!SLIDE
+!SLIDE center
 ![blah](ICCArchitecture3a.png)
 
-!SLIDE
+!SLIDE center
 ![blah](ICCArchitecture4a.png)
 
 !SLIDE bullets
