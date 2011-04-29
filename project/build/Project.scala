@@ -6,7 +6,10 @@ class Project(info: ProjectInfo) extends ParentProject(info) {
   lazy val central  = project("central", "Central", new CentralProject(_)) 
   lazy val api      = project("api", "API", new ApiProject(_))
   
-  class ProtocolProject(info: ProjectInfo) extends DefaultProject(info)
+  class ProtocolProject(info: ProjectInfo) extends DefaultProject(info) {
+    //replace these with salvero when it's in a repo
+    val grizzledSlf4j = "org.clapper" %% "grizzled-slf4j" % "0.4"
+  }
 
   class WebProject(info: ProjectInfo) extends DefaultWebProject(info) {
     //JRebel & html/css changes without restarts

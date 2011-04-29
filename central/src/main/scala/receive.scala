@@ -1,55 +1,44 @@
 package code.central
 
 import code.protocol._
-import org.zeromq.ZMQ
 import akka.actor.{Actor, ActorRef}
 import akka.routing.Listeners
+import org.salvero.core.{Send, FilterableSend}
 
 case object ReceiveMessage
 
-class ZMQSocketMessageReceiver(port: Int) extends Actor with ZMQContext with Listeners {
-  import ProtocolDeserialization._
-  import ZMQMultipart._
-  
-  lazy val pullSocket = {
-    val pullSocket = context.socket(ZMQ.PULL)
-    pullSocket.bind("tcp://*:" + port)
-    pullSocket
-  }
-
+class Handler extends Actor with Listeners {
   def receive = listenerManagement orElse {
-    case ReceiveMessage =>
-      val message = ((blockingReadTwoPartMessage _) andThen (deserializeMessage _))(pullSocket)
-      gossip(message)
-      self ! ReceiveMessage
+    case msg => gossip(msg)
   }
 }
 
-class CentralBroadcastReceiver(centralPublisher: ActorRef) extends Actor {
+class CentralBroadcastReceiver(centralPublisher: Send) extends Actor {
   def receive = {
     case msg @ UserAt(user, location) =>
       log.info("User " + user + " is at: " + location)
-      centralPublisher forward msg
+      centralPublisher ! msg
     case msg @ UserGone(who) =>
       log.info(who + " has left")
-      centralPublisher forward msg
+      centralPublisher ! msg
     case msg => log.info("ignoring message " + msg)
   }
 }
 
-class NearbyUsersBroadcast(centralNearbyPublisher: ActorRef) extends Actor {
+
+class NearbyUsersBroadcast(centralNearbyPublisher: FilterableSend) extends Actor {
   var userLocations: Map[User, Location] = Map()
 
   def receive = {
     case msg @ UserAt(user, location) =>
       forThoseWithin5kmOf(user, location) { otherUser =>
-        centralNearbyPublisher ! UserNearby(otherUser, msg)
+        centralNearbyPublisher ! (otherUser.username, UserNearby(otherUser, msg))
       }
       userLocations += (user -> location)
     case msg @ UserGone(who) =>
       val location = userLocations(who)
       forThoseWithin5kmOf(who, location) { otherUser =>
-        centralNearbyPublisher ! UserNoLongerNearby(otherUser, msg)
+        centralNearbyPublisher ! (otherUser.username, UserNoLongerNearby(otherUser, msg))
       }
       userLocations -= who
   }
