@@ -81,6 +81,10 @@
 !SLIDE
 ![blah](ICCArchitecture4a.png)
 
+!SLIDE bullets
+# Run it now
+- [https://something.socket.io](https://something.socket.io)
+
 !SLIDE smbullets incremental
 # Low-level UserAt events
 - Browser sends UserAt event to Web (every n secs): jQuery ajax post to Lift rest handler
@@ -115,6 +119,7 @@
     }
 
 !SLIDE small
+# Web: Rest API
     @@@ scala
     object RestApi extends RestHelper {
       serve {
@@ -133,6 +138,7 @@
     }
 
 !SLIDE small
+# Web: Push Socket
     @@@ scala
     object CentralPush 
     extends Push(Props.get("centralPushEndpoint", 
@@ -141,6 +147,7 @@
 
     
 !SLIDE small
+# Protocol: Models
     @@@ scala
     case class UserAt(user: User, location: Location)
     
@@ -152,6 +159,7 @@
                                   whoLeft: UserGone)
                                   
 !SLIDE smaller
+# Central: ZeroMQ Receiver
     @@@ scala
     class ZMQSocketMessageReceiver(port: Int) 
     extends Actor with ZMQContext with Listeners {
@@ -176,21 +184,7 @@
                                       
 
 !SLIDE small
-    @@@ scala
-    class CentralBroadcastReceiver(centralPublisher: ActorRef) 
-    extends Actor {
-      def receive = {
-        case msg @ UserAt(user, location) =>
-          log.info("User " + user + " is at: " + location)
-          centralPublisher forward msg
-        case msg @ UserGone(who) =>
-          log.info(who + " has left")
-          centralPublisher forward msg
-        case msg => log.info("ignoring message " + msg)
-      }
-    }
-
-!SLIDE smaller
+# Central: Publish Broadcast
     @@@ scala
     class ZMQSocketBroadcastPublisher(val port: Int) 
     extends Actor with ZMQContext with ZMQPubSocket {
@@ -200,22 +194,59 @@
       
       def receive = {
         case msg @ UserAt(user, location) =>
-          log.info("User " + user + " is at: " + location)
           writeTwoPartMessage(serializeToMessage(msg), 
                               pubSocket)
         case msg @ UserGone(who) =>
-          log.info(who + " has left")
           writeTwoPartMessage(serializeToMessage(msg), 
                               pubSocket)
       }
     }
 
+
+!SLIDE smbullets incremental
+# High-level UserNearby events
+- Browser sends UserAt event to Web
+- Web sends UserAt event to Central
+- Central sends UserNearby events to all Webs
+- Web filters out UserNearby events not relevant to signed-in user
+- Web adds newly nearby users to Browser: Lift comet calls jQuery functions to add & fade in <li>
+
 !SLIDE smaller
+# Central: Nearby Users Broadcast
+    @@@ scala
+    class NearbyUsersBroadcast(centralNearbyPublisher: ActorRef) 
+    extends Actor {
+      var userLocations: Map[User, Location] = Map()
+    
+      def receive = {
+        case msg @ UserAt(user, location) =>
+          forThoseWithin5kmOf(user, location) { otherUser =>
+            centralNearbyPublisher ! UserNearby(otherUser, msg)
+          }
+          userLocations += (user -> location)
+        case msg @ UserGone(who) =>
+          val location = userLocations(who)
+          forThoseWithin5kmOf(who, location) { otherUser =>
+            centralNearbyPublisher ! UserNoLongerNearby(otherUser, 
+                                                        msg)
+          }
+          userLocations -= who
+      }
+    
+      def forThoseWithin5kmOf(user: User, from: Location)
+                             (f: (User) => Unit) {
+        for {
+          (u, l) <- userLocations if l.within5km(from) && u != user
+        } f(u)
+      }
+    }
+    
+
+!SLIDE smaller
+# Web: Nearby Comet Actor
     @@@ scala
     class NearbyUsers extends CometActor with Logger {
-      val subscribe = new FilterableSubscribe(Props.get("centralNearbySubEndpoint", 
-                                                        "tcp://localhost:5560"), 
-                                                        this, Set(key))
+      val subscribe = new FilterableSubscribe(...)
     
       def render = NodeSeq.Empty
       
@@ -236,35 +267,120 @@
           }
       }
     }
+    
+!SLIDE 
+# Web: rendering a user
+    @@@ scala
+    def render(u: User) = 
+       <li id={ id(u) } style="display:none;">
+         { u.username }
+       </li>
+    
                 
-
-!SLIDE smbullets
-# High-level UserNearby events
-- Browser sends UserAt event to Web
-- Web sends UserAt event to Central
-- Central sends UserNearby events to all Webs
-- Web filters out UserNearby events not relevant to signed-in user
-- Web adds newly nearby users to Browser: Lift comet calls jQuery functions to add & fade in <li>
-
 !SLIDE smbullets
 # High-level UserNotNearby events
-    - On UserGone, Central sends UserNoLongerNearby for all relevant users to all Webs
-    - Web removes user from list in Browser: Lift comet calls jQuery functions to fade out & remove <li>
+- On UserGone, Central sends UserNoLongerNearby for all relevant users to all Webs
+- Web removes user from list in Browser: Lift comet calls jQuery functions to fade out & remove <li>
     
 !SLIDE smbullets
 # Streaming API    
+
+!SLIDE
+# API: Plan
+    @@@ scala
+    class ApiPlan extends channel.Plan {
+      import Streams._
+      
+      def intent = {
+        case req @ GET(Path("/all")) =>
+          allStream ! AddReq(req)
+      }
+    }
+
+!SLIDE
+# API: All Stream
+    @@@scala
+    class AllStreamActor extends Actor 
+    with ChunkedJsonChannelSupport {
+    
+      def receive = channelManagement orElse {
+        case msg: UserAt => 
+          writeChunk(tojson(msg))
+        case msg: UserGone => 
+          writeChunk(tojson(msg))
+      }
+    }
+    
+!SLIDE smaller
+    @@@scala
+    class CentralSub(port: Int) 
+    extends Actor with ZMQContext with Listeners {
+      import ProtocolDeserialization._
+      import ZMQMultipart._
+    
+      lazy val subSocket = {
+        val subSocket = context.socket(ZMQ.SUB)
+        subSocket.connect("tcp://*:" + port)
+        subSocket.subscribe("".getBytes)
+        subSocket
+      }
+    
+      def receive = listenerManagement orElse {
+        case ReceiveMessage =>
+          val message = ((blockingReadTwoPartMessage _) 
+                         andThen 
+                         (deserializeMessage _))(subSocket)
+          log.info("central sub received message " + message)
+          gossip(message)
+          self ! ReceiveMessage
+      }
+    }
+    
+!SLIDE smaller
+# API: Chunking
+    @@@ scala
+    trait ChunkedJsonChannelSupport {
+      import Headers._
+      val clients = new DefaultChannelGroup
+    
+      def chunk(json: JsValue) =
+        new DefaultHttpChunk(
+          ChannelBuffers.copiedBuffer((json + "\n").getBytes("utf-8")))
+    
+      def writeChunk(json: JsValue) = clients.write(chunk(json))
+      
+      def channelManagement = {
+        case AddReq(req) =>
+          val ch = req.underlying.event.getChannel
+          val initial = req.underlying.defaultResponse(ChunkedJson)
+          ch.write(initial).addListener { () =>
+            clients add ch
+          }
+      }
+    
+      implicit def block2listener[T](block: () => T): 
+        ChannelFutureListener = new ChannelFutureListener {
+          def operationComplete(future: ChannelFuture) { block() }
+       }
+    }
+        
+    
+!SLIDE bullets
+# Code
+- Up on Github
+- [https://github.com/iowacodecamp-push-web/iowacodecamp-push-web](https://github.com/iowacodecamp-push-web/iowacodecamp-push-web)
    
 !SLIDE smbullets
 # What else could you build?
 - Chat built on nearby users app: chat rooms form for nearby users
 - Geo events on nearby users app: tweets, instagram photos, 4sq checkins, Facebook...
 - Zaarly
-   - I'll pay $_ for _ in next _ hours within _ miles
-   - Their demo video shows SMS for event delivery, no provider UI shown (lame)
-   - Mobile web & apps for pushing events between customers & providers
 - Auction site: real-time aunction updates, no page reloads
 - Collaboration software: multiple people editing same UI at same time
 - Pongr: new photos, likes, notifications, comments, trends...
 
 !SLIDE
-- Any questions?
+# Any questions?
+
+!SLIDE
+# Thanks
