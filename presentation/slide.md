@@ -117,6 +117,13 @@
              scheduled = true;
         }
     }
+    
+    function sendLocation() {
+        $.post('/location', {
+            latitude: latitude, 
+            longitude: longitude
+        });
+    }
 
 !SLIDE small
 # Web: Rest API
@@ -141,9 +148,7 @@
 # Web: Push Socket
     @@@ scala
     object CentralPush 
-    extends Push(Props.get("centralPushEndpoint", 
-                           "tcp://localhost:5558")) 
-    with Connect
+      extends Push("tcp://localhost:5558") with Connect
 
     
 !SLIDE small
@@ -159,7 +164,7 @@
                                   whoLeft: UserGone)
                                   
 !SLIDE smaller
-# Central: ZeroMQ Receiver
+# DELETE Central: ZeroMQ Receiver
     @@@ scala
     class ZMQSocketMessageReceiver(port: Int) 
     extends Actor with ZMQContext with Listeners {
@@ -181,10 +186,23 @@
           self ! ReceiveMessage
       }
     }
-                                      
+
+!SLIDE smaller
+# Central: ZeroMQ Receiver
+    @@@ scala
+    class Handler extends Actor with Listeners {
+      def receive = listenerManagement orElse {
+        case msg => gossip(msg)
+      }
+    }
+    
+    val handler = actorOf[Handler].start
+    val zmqReceiver = actorOf(
+      new Pull("tcp://*:5558", handler) with Bind).start
+    zmqReceiver ! Start
 
 !SLIDE small
-# Central: Publish Broadcast
+# DELETE Central: Publish Broadcast
     @@@ scala
     class ZMQSocketBroadcastPublisher(val port: Int) 
     extends Actor with ZMQContext with ZMQPubSocket {
@@ -202,6 +220,69 @@
       }
     }
 
+!SLIDE small
+# Central: Publish Broadcast
+    @@@ scala
+    class CentralBroadcastReceiver(centralPublisher: Send) 
+      extends Actor {
+      def receive = {
+        case msg @ UserAt(user, location) =>
+          log.info("User " + user + " is at: " + location)
+          centralPublisher ! msg
+        case msg @ UserGone(who) =>
+          log.info(who + " has left")
+          centralPublisher ! msg
+        case msg => log.info("ignoring message " + msg)
+      }
+    }
+
+    val broadcastPublisher = new Publish("tcp://*:5559")
+    val broadcastReceiver = actorOf(
+      new CentralBroadcastReceiver(broadcastPublisher)).start
+    handler ! Listen(broadcastReceiver)
+    
+!SLIDE small
+# Web: Comet Map
+    @@@ scala
+    class MapView extends CometActor with CometListener {
+      def registerWith = CentralSub
+
+      override def lowPriority = {
+        case UserAt(User(username), Location(lat, lng)) =>
+          partialUpdate(Call("userAt", 
+                             Str(username), 
+                             Num(lat), 
+                             Num(lng)))
+        case UserGone(User(username)) =>
+          partialUpdate(Call("userGone", 
+                             Str(username)))
+      }
+
+      def render = NodeSeq.Empty
+    }
+    
+!SLIDE small
+# Web: Google Map
+    @@@ javascript
+    function userAt(username, lat, lng) {
+        if (users.hasOwnProperty(username)) {
+    	users[username].setPosition(
+    	  new google.maps.LatLng(lat, lng));
+        } else {
+    	users[username] = new google.maps.Marker({
+    	    position: new google.maps.LatLng(lat, lng),
+    	    map: map,
+    	    title: username,
+    	    animation: google.maps.Animation.DROP
+    	});
+        }
+    }
+
+    function userGone(username) {
+        users[username].setMap(null);
+        users[username] = null;
+        delete users[username];
+    }
 
 !SLIDE smbullets incremental
 # High-level UserNearby events
@@ -370,7 +451,7 @@
 - Up on Github
 - [https://github.com/iowacodecamp-push-web/iowacodecamp-push-web](https://github.com/iowacodecamp-push-web/iowacodecamp-push-web)
    
-!SLIDE smbullets
+!SLIDE smbullets incremental
 # What else could you build?
 - Chat built on nearby users app: chat rooms form for nearby users
 - Geo events on nearby users app: tweets, instagram photos, 4sq checkins, Facebook...
