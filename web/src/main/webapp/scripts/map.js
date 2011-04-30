@@ -2,8 +2,8 @@ var map;
 var users = new Object;
 function initialize() {
     var myOptions = {
-	zoom: 4,
-	center: new google.maps.LatLng(37.09024,-95.712891),
+	zoom: 15,
+	center: new google.maps.LatLng(41.9102049,-91.6522762),
 	mapTypeId: google.maps.MapTypeId.ROADMAP
     };
     map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
