@@ -1,5 +1,7 @@
-!SLIDE
+!SLIDE bullets
 # Pushing the Web Around 
+- Luke Amdor, T8 Webware, @rubbish
+- Zach Cox, Pongr, @zcox
 
 !SLIDE bullets
 # Overall
