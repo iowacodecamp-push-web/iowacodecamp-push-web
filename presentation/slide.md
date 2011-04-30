@@ -163,30 +163,14 @@
     
     case class UserNoLongerNearby(target: User, 
                                   whoLeft: UserGone)
-                                  
-!SLIDE smaller
-# DELETE Central: ZeroMQ Receiver
-    @@@ scala
-    class ZMQSocketMessageReceiver(port: Int) 
-    extends Actor with ZMQContext with Listeners {
-      import ProtocolDeserialization._
-      import ZMQMultipart._
-      
-      lazy val pullSocket = {
-        val pullSocket = context.socket(ZMQ.PULL)
-        pullSocket.bind("tcp://*:" + port)
-        pullSocket
-      }
-    
-      def receive = listenerManagement orElse {
-        case ReceiveMessage =>
-          val message = ((blockingReadTwoPartMessage _) 
-                         andThen 
-                         (deserializeMessage _))(pullSocket)
-          gossip(message)
-          self ! ReceiveMessage
-      }
-    }
+
+!SLIDE bullets
+# salat-avro
+- [Github](https://github.com/t8webware/salat-avro)
+
+!SLIDE bullets
+# Salvero
+- [Github](https://github.com/zcox/salvero)
 
 !SLIDE smaller
 # Central: ZeroMQ Receiver
@@ -201,26 +185,7 @@
     val zmqReceiver = actorOf(
       new Pull("tcp://*:5558", handler) with Bind).start
     zmqReceiver ! Start
-
-!SLIDE small
-# DELETE Central: Publish Broadcast
-    @@@ scala
-    class ZMQSocketBroadcastPublisher(val port: Int) 
-    extends Actor with ZMQContext with ZMQPubSocket {
     
-      import ProtocolSerialization._
-      import ZMQMultipart._
-      
-      def receive = {
-        case msg @ UserAt(user, location) =>
-          writeTwoPartMessage(serializeToMessage(msg), 
-                              pubSocket)
-        case msg @ UserGone(who) =>
-          writeTwoPartMessage(serializeToMessage(msg), 
-                              pubSocket)
-      }
-    }
-
 !SLIDE small
 # Central: Publish Broadcast
     @@@ scala
