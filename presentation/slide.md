@@ -65,6 +65,7 @@
 - [netty](http://www.jboss.org/netty/)
 - [pusher](http://pusher.com/)
 - mobile push
+- [socket.io](http://socket.io)
 
 !SLIDE smbullets
 # Example app: nearby users
